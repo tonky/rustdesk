@@ -83,6 +83,24 @@ jobs:
             nasm \
             pkg-config
 
+          # Ubuntu's libyuv-dev does not provide a .pc file; synthesize it for scrap crate's pkg-config probe
+          MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo "$(uname -m)-linux-gnu")
+          sudo mkdir -p /usr/share/pkgconfig
+          cat << EOF | sudo tee /usr/share/pkgconfig/libyuv.pc
+          prefix=/usr
+          exec_prefix=\${prefix}
+          libdir=\${prefix}/lib/${MULTIARCH}
+          includedir=\${prefix}/include
+
+          Name: libyuv
+          Description: YUV scaling and conversion library
+          Version: 0.0.1280
+          Libs: -L\${libdir} -lyuv
+          Cflags: -I\${includedir}
+          EOF
+          sudo sed -i 's/^[ \t]*//' /usr/share/pkgconfig/libyuv.pc
+          pkg-config --libs --cflags libyuv
+
       - name: Install ARM64 nFPM Packaging Engine
         shell: bash
         run: |

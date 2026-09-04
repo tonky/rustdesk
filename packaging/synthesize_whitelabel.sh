@@ -119,6 +119,27 @@ if [[ "${ARCH}" != "x86_64" ]]; then
     unset SODIUM_LIB_DIR SODIUM_INCLUDE_DIR LIBCLANG_PATH
 fi
 
+# Synthesize libyuv.pc if missing on host (Ubuntu libyuv-dev does not ship a .pc file)
+if ! pkg-config --exists libyuv 2>/dev/null; then
+    if [[ -f "/usr/include/libyuv.h" ]] || [[ -d "/usr/include/libyuv" ]]; then
+        MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo "${ARCH}-linux-gnu")
+        mkdir -p /tmp/pkgconfig
+        cat << EOF > /tmp/pkgconfig/libyuv.pc
+prefix=/usr
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib/${MULTIARCH}
+includedir=\${prefix}/include
+
+Name: libyuv
+Description: YUV scaling and conversion library
+Version: 0.0.1280
+Libs: -L\${libdir} -lyuv
+Cflags: -I\${includedir}
+EOF
+        export PKG_CONFIG_PATH="/tmp/pkgconfig:${PKG_CONFIG_PATH:-}"
+    fi
+fi
+
 COMPILE_START=$(date +%s%N)
 if [[ "${ARCH}" == "x86_64" ]] && command -v enve >/dev/null 2>&1; then
     enve run -- cargo build "${CARGO_ARGS[@]}"
