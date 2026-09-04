@@ -205,8 +205,11 @@ Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while 
 
 ## Pitching Strategy & Roadmap Summary
 
-| Initiative | Technical Value | Business Impact |
-| :--- | :--- | :--- |
-| **Phase 1: Local Dev & Fast CI Gatekeeper** | Sub-100ms onboarding, 45–60s PR gatekeeper via L1/L2 cache & `enve shield`. | Immediate feedback loop for core engineers; eliminates PR bottlenecks. |
-| **Phase 2: Hermetic Full Packaging & Multi-Arch** | Replace Ubuntu 18.04 `run-on-arch-action`; 3-5m full builds; restore ARM64/musl & Web Client. | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. |
-| **Phase 3: Server Pro Whitelabel Engine** | Parametric 15-second branded client synthesis replacing `playground.yml`. | Directly accelerates RustDesk Server Pro enterprise sales and onboarding. |
+| Initiative | Technical Value | Business Impact | Status |
+| :--- | :--- | :--- | :--- |
+| **Phase 1: Local Dev & Fast CI Gatekeeper** | Sub-100ms onboarding, 2m 1s PR gatekeeper via L1/L2 cache, 3 parallel jobs, and `enve shield`. | Immediate feedback loop for core engineers; eliminates PR bottlenecks. | ✅ **Delivered & Verified** ([Run #33917404036](https://github.com/tonky/rustdesk/actions/runs/33917404036)) |
+| **Phase 2: QEMU-Free Native ARM64 Pipeline** | Native `ubuntu-24.04-arm` silicon; replaces 1.5–3.5h QEMU emulation with <10m native build & packaging. | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. | ✅ **Delivered & Verified** ([Run #33917404170](https://github.com/tonky/rustdesk/actions/runs/33917404170)) |
+| **Phase 3: Server Pro Whitelabel Engine** | Parametric multi-arch (`x86_64` + `aarch64`) branded client synthesis in 2m 12s, replacing `playground.yml`. | Directly accelerates RustDesk Server Pro enterprise sales and onboarding. | ✅ **Delivered & Verified** ([Run #33917404073](https://github.com/tonky/rustdesk/actions/runs/33917404073)) |
+| **Phase 4: Automated Headless GUI & Audio CI** | Virtual display (`xvfb-run`) and dummy audio to unlock 100% of RustDesk integration tests in CI. | Unblocks testing for input, cursor, audio, and display capture. | 🎯 **Next Opportunity** |
+| **Phase 5: Universal Portable Packaging (AppImage)** | Single portable binary bundling all dependencies, eliminating `glibc` mismatch across distros. | Seamless distribution for modern desktop users and enterprise IT. | 🎯 **Next Opportunity** |
+| **Phase 6: Reviving Abandoned Web Client** | Hermetic Vite/Protoc/Flutter environment to resurrect disabled `build-rustdesk-web`. | Restores browser client access without manual dependency drift. | 🎯 **Next Opportunity** |
