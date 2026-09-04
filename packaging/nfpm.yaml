@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://nfpm.goreleaser.com/schema.json
+name: "rustdesk"
+arch: "${ARCH}"
+platform: "linux"
+version: "${VERSION}"
+section: "net"
+priority: "optional"
+maintainer: "RustDesk <info@rustdesk.com>"
+description: "The best open-source remote desktop client software, written in Rust."
+vendor: "RustDesk"
+homepage: "https://rustdesk.com"
+license: "GPL-3.0"
+
+contents:
+  - src: target/rustdesk
+    dst: /usr/bin/rustdesk
+    file_info:
+      mode: 0755
+  - src: res/rustdesk.service
+    dst: /usr/lib/systemd/system/rustdesk.service
+    file_info:
+      mode: 0644
+  - src: res/rustdesk.desktop
+    dst: /usr/share/applications/rustdesk.desktop
+    file_info:
+      mode: 0644
+  - src: res/rustdesk-link.desktop
+    dst: /usr/share/applications/rustdesk-link.desktop
+    file_info:
+      mode: 0644
+  - src: res/128x128@2x.png
+    dst: /usr/share/icons/hicolor/256x256/apps/rustdesk.png
+    file_info:
+      mode: 0644
+  - src: res/scalable.svg
+    dst: /usr/share/icons/hicolor/scalable/apps/rustdesk.svg
+    file_info:
+      mode: 0644
+
+overrides:
+  deb:
+    depends:
+      - libgtk-3-0
+      - libxcb-randr0
+      - libxdo3
+      - libxfixes3
+      - libasound2
+      - libpulse0
+    scripts:
+      postinstall: res/DEBIAN/postinst
+      preremove: res/DEBIAN/prerm
+      postremove: res/DEBIAN/postrm
+  rpm:
+    depends:
+      - gtk3
+      - libxcb
+      - libXfixes
+      - alsa-lib
+      - pulseaudio-libs
