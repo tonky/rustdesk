@@ -77,6 +77,10 @@ jobs:
 
       - name: Rust Cache (Cargo dependencies & target)
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "rustdesk-shared-target"
+          cache-all-crates: "true"
+          save-if: "true"
 
       - name: Initialize Nix Store Directory
         shell: bash
