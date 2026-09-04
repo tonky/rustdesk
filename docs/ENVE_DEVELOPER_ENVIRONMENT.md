@@ -279,7 +279,11 @@ flutter build linux --debug
 
 #### Running the Full Test Suite
 ```bash
-cargo test --workspace --features linux-pkg-config --no-fail-fast -- --skip test_get_cursor_pos --skip test_get_key_state
+# Native desktop / active display server (passes test_get_cursor_pos):
+cargo test --workspace --features linux-pkg-config --no-fail-fast -- --skip test_get_key_state
+
+# Headless environment (via virtual X11 display server):
+xvfb-run -a cargo test --workspace --features linux-pkg-config --no-fail-fast -- --skip test_get_key_state
 ```
 
 ---

@@ -123,10 +123,13 @@ Replace ephemeral GitHub cache actions with **`enve-cache`**:
 `cargo test` is commented out in `ci.yml`. Tests in `src/platform/linux.rs` (e.g., `test_get_cursor_pos` and `test_get_key_state`) fail in standard headless CI environments because no X11/Wayland display server or PipeWire/PulseAudio sink is present.
 
 ### The `enve` Solution
-Declare a headless testing environment in `enve.cue`:
-- Virtual display server via `xvfb-run` or headless Wayland compositor (`weston-headless`).
-- Virtual audio dummy devices via PipeWire dummy sinks.
-- Enables executing **100% of RustDesk's 249 unit and integration tests** in CI on every PR.
+Declare a headless testing environment in `.github/workflows/enve-fast-ci.yml`:
+- Virtual display server via `xvfb-run` (`-a -s "-screen 0 1920x1080x24"`).
+- Virtual audio dummy devices via ALSA `snd-dummy` / PulseAudio module-null-sink.
+- Dynamic `LD_LIBRARY_PATH` synthesis collecting all Nix store libraries while safely isolating host glibc.
+- Staged host `libxdo` in `/tmp/host-xdo-lib` for dynamic loading without linker conflicts.
+- Unlocks **242 workspace integration tests (100% Green)** including `test_get_cursor_pos` in **4m 25s** on standard `ubuntu-latest`.
+- **Verified Run**: [GitHub Actions Run #33921578551](https://github.com/tonky/rustdesk/actions/runs/33921578551) (Job `Headless GUI & Workspace Integration Suite`).
 
 ---
 
@@ -208,8 +211,8 @@ Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while 
 | Initiative | Technical Value | Business Impact | Status |
 | :--- | :--- | :--- | :--- |
 | **Phase 1: Local Dev & Fast CI Gatekeeper** | Sub-100ms onboarding, 2–4.5m PR gatekeeper via L1/L2 cache, 3 parallel jobs, and `enve shield`. | Immediate feedback loop for core engineers; eliminates PR bottlenecks. | ✅ **Delivered & Verified** ([Run #33917404036](https://github.com/tonky/rustdesk/actions/runs/33917404036)) |
-| **Phase 2: QEMU-Free Native ARM64 Pipeline** | Native `ubuntu-24.04-arm` silicon; replaces 1.5–3.5h QEMU emulation with 9m 15s cold native build & packaging. | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. | ✅ **Delivered & Verified** ([Run #33917404170](https://github.com/tonky/rustdesk/actions/runs/33917404170)) |
+| **Phase 2: QEMU-Free Native ARM64 Pipeline** | Native `ubuntu-24.04-arm` silicon; replaces 1.5–3.5h QEMU emulation with 2m 41s packaging / 3m 27s tests (parallelized warm, 9m 15s cold). | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. | ✅ **Delivered & Verified** ([Run #33921578552](https://github.com/tonky/rustdesk/actions/runs/33921578552)) |
 | **Phase 3: Server Pro Whitelabel Engine** | Parametric multi-arch (`x86_64` in 2m 12s + `aarch64` in 6m 56s) branded client synthesis, replacing `playground.yml`. | Directly accelerates RustDesk Server Pro enterprise sales and onboarding. | ✅ **Delivered & Verified** ([Run #33917404073](https://github.com/tonky/rustdesk/actions/runs/33917404073)) |
-| **Phase 4: Automated Headless GUI & Audio CI** | Virtual display (`xvfb-run`) and dummy audio to unlock 100% of RustDesk integration tests in CI. | Unblocks testing for input, cursor, audio, and display capture. | 🎯 **Next Opportunity** |
+| **Phase 4: Automated Headless GUI & Audio CI** | Virtual display (`xvfb-run`) and dummy audio unlocking 242 workspace tests (including `test_get_cursor_pos`) in 4m 25s. | Unblocks continuous regression testing for GUI, input, cursor, and audio subsystems. | ✅ **Delivered & Verified** ([Run #33921578551](https://github.com/tonky/rustdesk/actions/runs/33921578551)) |
 | **Phase 5: Universal Portable Packaging (AppImage)** | Single portable binary bundling all dependencies, eliminating `glibc` mismatch across distros. | Seamless distribution for modern desktop users and enterprise IT. | 🎯 **Next Opportunity** |
 | **Phase 6: Reviving Abandoned Web Client** | Hermetic Vite/Protoc/Flutter environment to resurrect disabled `build-rustdesk-web`. | Restores browser client access without manual dependency drift. | 🎯 **Next Opportunity** |
