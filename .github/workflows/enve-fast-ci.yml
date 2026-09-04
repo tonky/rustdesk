@@ -239,26 +239,32 @@ jobs:
           echo "========================================================================"
           echo " 🖥️ Running Full Workspace Tests with Virtual Display & Audio"
           echo "========================================================================"
-          for gcc_lib in /nix/store/*-gcc-*-lib/lib; do
-            if [ -f "$gcc_lib/libstdc++.so.6" ]; then
-              EXTRA_LIBS="$gcc_lib${EXTRA_LIBS:+:$EXTRA_LIBS}"
-              break
+          # 1. Collect all hermetic Nix store library paths for X11, Xtst, xkbcommon, GCC runtime, etc.
+          NIX_EXTRA_LIBS=""
+          for lib_dir in /nix/store/*-lib[xX]11-*/lib \
+                         /nix/store/*-lib[xX]tst-*/lib \
+                         /nix/store/*-libxkbcommon-*/lib \
+                         /nix/store/*-lib[xX]ext-*/lib \
+                         /nix/store/*-lib[xX]fixes-*/lib \
+                         /nix/store/*-lib[xX]randr-*/lib \
+                         /nix/store/*-lib[xX]cursor-*/lib \
+                         /nix/store/*-lib[xX]i-*/lib \
+                         /nix/store/*-gcc-*-lib/lib \
+                         /nix/store/*-environment-develop/lib; do
+            if [ -d "$lib_dir" ]; then
+              NIX_EXTRA_LIBS="$lib_dir${NIX_EXTRA_LIBS:+:$NIX_EXTRA_LIBS}"
             fi
           done
-          for env_lib in /nix/store/*-environment-develop/lib; do
-            if [ -d "$env_lib" ]; then
-              EXTRA_LIBS="$env_lib${EXTRA_LIBS:+:$EXTRA_LIBS}"
-              break
+
+          # 2. Stage host libxdo in an isolated directory without exposing host libc.so.6 (avoids glibc symbol collision)
+          mkdir -p /tmp/host-xdo-lib
+          for xdo_so in /usr/lib/*-linux-gnu/libxdo.so*; do
+            if [ -e "$xdo_so" ]; then
+              ln -sf "$xdo_so" /tmp/host-xdo-lib/
             fi
           done
-          for x_lib in /nix/store/*-libxtst-*/lib /nix/store/*-libxkbcommon-*/lib; do
-            if [ -d "$x_lib" ]; then
-              EXTRA_LIBS="$x_lib${EXTRA_LIBS:+:$EXTRA_LIBS}"
-            fi
-          done
-          MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo "$(uname -m)-linux-gnu")
-          HOST_LIB_DIR="/usr/lib/${MULTIARCH}"
-          FULL_LD_PATH="${EXTRA_LIBS}:${HOST_LIB_DIR}:${LD_LIBRARY_PATH}"
+
+          FULL_LD_PATH="${NIX_EXTRA_LIBS}:/tmp/host-xdo-lib:${LD_LIBRARY_PATH}"
 
           # Execute full workspace tests inside 1920x1080 virtual X11 display
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
