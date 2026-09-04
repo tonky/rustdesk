@@ -46,7 +46,7 @@ Compiling C/C++ FFI dependencies (`libvpx`, `libyuv`, `libopus`, `libaom`) via `
 
 ### The `enve` Solution
 Nix provides native, pre-built cross-compilation closures (`pkgsCross.aarch64-multiplatform`, `pkgsMusl`) with zero QEMU virtualization overhead:
-- ARM64, musl, and ARMv7 binaries are cross-compiled directly on high-speed x86 runners in **under 3 minutes**.
+- Native ARM64 binaries build and package on native silicon in **~9 minutes cold** (and <3m warm), while Nix closures eliminate all in-runner C++ compilations.
 - Pre-built media libraries eliminate all in-runner C++ compilations.
 
 ---
@@ -181,7 +181,7 @@ Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while 
 
 1. **Decouple PR Gatekeeping from Release Packaging (The Two-Track CI)**:
    - Upstream’s primary structural mistake is treating every PR like a full multi-platform release build.
-   - **Track 1: Fast PR Gatekeeper (`ubuntu-latest` + `enve`)**: PRs only require syntax validation, workspace type-checking, clippy lints, unit tests, and vulnerability scanning (`enve shield`). Running this on standard `ubuntu-latest` with `enve`'s two-tier L1/L2 cache takes **under 60 seconds** instead of 1–3.5 hours. Developers get instant feedback on every commit without waiting for 10 distribution targets.
+   - **Track 1: Fast PR Gatekeeper (`ubuntu-latest` + `enve`)**: PRs only require syntax validation, workspace type-checking, clippy lints, unit tests, and vulnerability scanning (`enve shield`). Running this on standard `ubuntu-latest` with `enve`'s two-tier L1/L2 cache takes **2–4.5 minutes (parallelized)** instead of 1–3.5 hours. Developers get instant feedback on every commit without waiting for 10 distribution targets.
    - **Track 2: Release Packaging Pipeline (Tags / Nightlies only)**: Heavy multi-arch matrix packaging triggers only on release tags or manual workflow dispatch.
 
 2. **Build for Legacy `glibc` on Modern Runners (Hermetic Sysroots)**:
@@ -198,7 +198,7 @@ Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while 
    - An `enve`-powered build on modern Ubuntu packages portable AppImages and Flatpaks in under 2 minutes, with all shared libraries bundled internally.
 
 5. **Pitching Strategy for the RustDesk Team**:
-   - **Show the Contrast**: Emphasize how `enve` delivers a **45–60s PR gatekeeper on modern `ubuntu-latest`**, immediately eliminating stalled PR queues.
+   - **Show the Contrast**: Emphasize how `enve` delivers a **~2–4 minute PR gatekeeper on modern `ubuntu-latest`**, immediately eliminating stalled PR queues.
    - **Path Forward for Packaging**: Propose replacing the brittle Ubuntu 18.04 Docker containers in `flutter-ci.yml` with hermetic `enve` environments, saving thousands of CI runner minutes monthly while preserving 100% backward compatibility for paying Server Pro customers.
 
 ---
@@ -207,9 +207,9 @@ Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while 
 
 | Initiative | Technical Value | Business Impact | Status |
 | :--- | :--- | :--- | :--- |
-| **Phase 1: Local Dev & Fast CI Gatekeeper** | Sub-100ms onboarding, 2m 1s PR gatekeeper via L1/L2 cache, 3 parallel jobs, and `enve shield`. | Immediate feedback loop for core engineers; eliminates PR bottlenecks. | ✅ **Delivered & Verified** ([Run #33917404036](https://github.com/tonky/rustdesk/actions/runs/33917404036)) |
-| **Phase 2: QEMU-Free Native ARM64 Pipeline** | Native `ubuntu-24.04-arm` silicon; replaces 1.5–3.5h QEMU emulation with <10m native build & packaging. | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. | ✅ **Delivered & Verified** ([Run #33917404170](https://github.com/tonky/rustdesk/actions/runs/33917404170)) |
-| **Phase 3: Server Pro Whitelabel Engine** | Parametric multi-arch (`x86_64` + `aarch64`) branded client synthesis in 2m 12s, replacing `playground.yml`. | Directly accelerates RustDesk Server Pro enterprise sales and onboarding. | ✅ **Delivered & Verified** ([Run #33917404073](https://github.com/tonky/rustdesk/actions/runs/33917404073)) |
+| **Phase 1: Local Dev & Fast CI Gatekeeper** | Sub-100ms onboarding, 2–4.5m PR gatekeeper via L1/L2 cache, 3 parallel jobs, and `enve shield`. | Immediate feedback loop for core engineers; eliminates PR bottlenecks. | ✅ **Delivered & Verified** ([Run #33917404036](https://github.com/tonky/rustdesk/actions/runs/33917404036)) |
+| **Phase 2: QEMU-Free Native ARM64 Pipeline** | Native `ubuntu-24.04-arm` silicon; replaces 1.5–3.5h QEMU emulation with 9m 15s cold native build & packaging. | Fixes 50% CI failure rate; saves hours of GitHub Actions runner minutes. | ✅ **Delivered & Verified** ([Run #33917404170](https://github.com/tonky/rustdesk/actions/runs/33917404170)) |
+| **Phase 3: Server Pro Whitelabel Engine** | Parametric multi-arch (`x86_64` in 2m 12s + `aarch64` in 6m 56s) branded client synthesis, replacing `playground.yml`. | Directly accelerates RustDesk Server Pro enterprise sales and onboarding. | ✅ **Delivered & Verified** ([Run #33917404073](https://github.com/tonky/rustdesk/actions/runs/33917404073)) |
 | **Phase 4: Automated Headless GUI & Audio CI** | Virtual display (`xvfb-run`) and dummy audio to unlock 100% of RustDesk integration tests in CI. | Unblocks testing for input, cursor, audio, and display capture. | 🎯 **Next Opportunity** |
 | **Phase 5: Universal Portable Packaging (AppImage)** | Single portable binary bundling all dependencies, eliminating `glibc` mismatch across distros. | Seamless distribution for modern desktop users and enterprise IT. | 🎯 **Next Opportunity** |
 | **Phase 6: Reviving Abandoned Web Client** | Hermetic Vite/Protoc/Flutter environment to resurrect disabled `build-rustdesk-web`. | Restores browser client access without manual dependency drift. | 🎯 **Next Opportunity** |

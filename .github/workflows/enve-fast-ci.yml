@@ -256,11 +256,13 @@ jobs:
               EXTRA_LIBS="$x_lib${EXTRA_LIBS:+:$EXTRA_LIBS}"
             fi
           done
-          export LD_LIBRARY_PATH="${EXTRA_LIBS}:${LD_LIBRARY_PATH}"
+          MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo "$(uname -m)-linux-gnu")
+          HOST_LIB_DIR="/usr/lib/${MULTIARCH}"
+          FULL_LD_PATH="${EXTRA_LIBS}:${HOST_LIB_DIR}:${LD_LIBRARY_PATH}"
 
           # Execute full workspace tests inside 1920x1080 virtual X11 display
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
-            enve run -- cargo test --workspace --features linux-pkg-config --no-fail-fast
+            enve run -- env LD_LIBRARY_PATH="${FULL_LD_PATH}" cargo test --workspace --features linux-pkg-config --no-fail-fast
           echo "✅ All 243 workspace tests passed with zero skips!"
 
       - name: Publish Test Suite Coverage Summary
@@ -282,7 +284,7 @@ jobs:
           | **`naming`** | 1 test | ✅ Passed | Rendezvous Server Naming Protocol |
           | **Total Workspace** | **243 tests** | **✅ 100% Green** | **Full Integration & Regression Gate** |
 
-          > 💡 **Comparison with Upstream**: Upstream explicitly disabled testing in `ci.yml` via `--skip test_get_cursor_pos --skip test_get_key_state` because headless runners lacked display servers. `enve` executes **100% of the test suite** in headless CI in ~30 seconds!
+          > 💡 **Comparison with Upstream**: Upstream explicitly disabled testing in `ci.yml` via `--skip test_get_cursor_pos --skip test_get_key_state` because headless runners lacked display servers. `enve` executes **100% of the test suite** in headless CI in ~2–3 minutes!
           EOF
 
   build-and-package:
@@ -407,7 +409,7 @@ jobs:
 
           | Metric | Upstream PR CI (\`ci.yml\` & \`flutter-ci.yml\`) | \`enve\` Fast CI Gatekeeper | Improvement |
           | :--- | :--- | :--- | :--- |
-          | **Turnaround Duration** | **20m – 3.5 hours** | **~60 – 90 seconds (Parallelized)** | **~20x – 120x Faster** ⚡ |
+          | **Turnaround Duration** | **20m – 3.5 hours** | **~2 – 4.5 minutes (Parallelized)** | **~5x – 40x Faster** ⚡ |
           | **PR Deliverables** | **None** (\`upload-artifact: false\`) | **Downloadable \`.deb\` & \`.rpm\` Attached** 📦 | **Instant QA / Reviewer Testing** |
           | **Failure Rate** | **~50%** (Ubuntu 18.04 mirror timeouts & Azure 503) | **0%** (Hermetic & deterministic) | **100% Reliable** |
           | **C++ Codec Prep** | 30–45m un-cached \`vcpkg\` build | **18s L1 restore** / 0-egress R2 | **Zero In-Runner C++ Compilation** |

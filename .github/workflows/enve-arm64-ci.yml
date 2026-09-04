@@ -196,14 +196,14 @@ jobs:
 
           > **Eliminating the 3-Hour QEMU Bottleneck**: Upstream RustDesk builds ARM64 binaries using \`run-on-arch-action\` inside CPU software emulation on Ubuntu 18.04 (\`flutter-build.yml:L2340-2460\`), taking **1.5 to 3.5 hours** with frequent timeouts.
           >
-          > We migrated ARM64 builds to GitHub's **native 4-vCPU ARM64 runners (\`ubuntu-24.04-arm\`)** combined with **zero-dependency \`nfpm\` packaging**, delivering native ARM64 \`.deb\` and \`.rpm\` packages in under 3 minutes!
+          > We migrated ARM64 builds to GitHub's **native 4-vCPU ARM64 runners (\`ubuntu-24.04-arm\`)** combined with **zero-dependency \`nfpm\` packaging**, delivering native ARM64 \`.deb\` and \`.rpm\` packages in ~9 minutes cold (vs 1.5–3.5 hours under QEMU)!
 
           ### ⚡ Wall-Clock Benchmark Comparison
 
           | Metric | Upstream Emulated Pipeline (\`flutter-build.yml\`) | Showcase 2: Native ARM64 Pipeline | Efficiency Win |
           | :--- | :--- | :--- | :--- |
           | **Execution Engine** | QEMU User Space CPU Emulation (Ubuntu 18.04) | **Bare-Metal ARM64 Silicon (\`ubuntu-24.04-arm\`)** | **100% Native Execution** ⚡ |
-          | **Total Turnaround Time** | **90m – 210m (5,400s – 12,600s)** | **\${{ steps.compile.outputs.build_duration || '< 3m' }}** | **~98% Reduction** 🏎️ |
+          | **Total Turnaround Time** | **90m – 210m (5,400s – 12,600s)** | **~9 minutes cold (compile: ${{ steps.compile.outputs.build_duration }})** | **~95% Reduction** 🏎️ |
           | **Failure & Timeout Rate** | **~50%** (Out of memory / runner timeout) | **0%** (Clean deterministic native runner) | **Rock-solid Reliability** |
           | **Packaging Mechanism** | 1,151 lines Docker-in-Docker \`build.py\` | **nFPM (<1s zero-overhead)** | **Instant Packaging** |
           | **Hardware Allocation** | Emulated single-thread vCPU slice | **4 Dedicated ARM64 Cores + 16 GB RAM** | **4x Parallel Throughput** |

@@ -199,12 +199,12 @@ jobs:
           cat << EOF >> $GITHUB_STEP_SUMMARY
           ## 🏷️ RustDesk Server Pro: Parametric Whitelabel Client Synthesis
 
-          > **Turnkey Client Synthesis in Record Time**: Replaced upstream's monolithic 45–90 minute client rebuild (\`playground.yml\`) with a **<30s parametric compilation and packaging pipeline** powered by \`enve\` and \`nfpm\`.
+          > **Turnkey Client Synthesis in Record Time**: Replaced upstream's monolithic 45–90 minute client rebuild (\`playground.yml\`) with a **turnkey parametric client synthesis pipeline** (~2m on x86_64, ~7m on aarch64) powered by \`enve\` and \`nfpm\`.
 
           ### 🚀 Performance Benchmark Comparison
           | Metric | Upstream Server Pro (\`playground.yml\`) | enve Whitelabel Synthesis Engine | Efficiency Win |
           | :--- | :--- | :--- | :--- |
-          | **Wall-Clock Latency** | 45m – 90m (2,700s – 5,400s) | **${{ steps.synthesis.outputs.synth_duration }}** | **>99% Faster** ⚡ |
+          | **Wall-Clock Latency** | 45m – 90m (2,700s – 5,400s) | **~2m (x86_64) / ~7m (aarch64)** (synthesis step: ${{ steps.synthesis.outputs.synth_duration }}) | **~90% – 95% Faster** ⚡ |
           | **Toolchain Setup** | Manual apt-get + Homebrew + Docker (10-15m) | Hermetic \`enve\` L1/L2 Nix Cache (<15s) | **Deterministic & Instant** |
           | **Dependency Compilation** | Recompiles all 500+ crates from scratch | Recompiles only parametric layer (\`hbb_common\`) | **Zero Redundancy** |
           | **Packaging Overhead** | 1,151 lines Docker-in-Docker \`build.py\` | Zero-dependency \`nfpm\` (<1s) | **Instant Native Packaging** |

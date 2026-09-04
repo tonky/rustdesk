@@ -26,7 +26,7 @@ RustDesk is an industry-leading open-source remote desktop platform with a sophi
 By introducing a single declarative configuration ([`enve.cue`](../enve.cue)) paired with an immutable lockfile ([`enve.lock`](../enve.lock)):
 - **Sub-100ms Developer Activation**: Onboard new engineers or machines in <100 ms with bit-for-bit identical store closures.
 - **Elimination of vcpkg Compilation**: Pre-built, cryptographically pinned system packages with complete `.pc` pkg-config manifests enable direct building via `--features linux-pkg-config`.
-- **Radical CI Acceleration**: Cuts CI build runtimes from **23–35 minutes down to 60–120 seconds** with remote binary caching.
+- **Radical CI Acceleration**: Cuts CI build runtimes from **23–35 minutes down to 2–4 minutes** with remote binary caching.
 - **Native Dual-GUI Development**: Unified Sciter and Flutter execution directly on the host with native Wayland/X11 and GPU hardware acceleration.
 - **Zero Host Contamination**: Fully isolated dependencies residing in `/nix/store` or rootless store paths without requiring `sudo` or polluting host libraries.
 - **Commercial Managed Cache**: A zero-egress, high-throughput distributed binary cache powered by Cloudflare Workers and R2.
@@ -66,7 +66,7 @@ flowchart TD
     subgraph EnveCycle["enve Fast-Feedback Loop (<3 min cycle)"]
         E1["Write Code"] --> E2["Local devshell (<100ms activation)"]
         E2 --> E3["Push to PR"]
-        E3 --> E4["Fast CI (60-120s with enve-cache)"]
+        E3 --> E4["Fast CI (2-4m with enve-cache)"]
         E4 --> E5["Synchronous Review & Merge (In Flow)"]
     end
 
@@ -135,7 +135,7 @@ Upstream Workflow Breakdown:
 | **build-linux-sciter** | 24 min | 5m 15s | **1m 15s** | **19x faster** |
 | **build-deb-rpm** | 21 min | 3m 40s | **0m 55s** | **22x faster** |
 | **check-and-lint** | 8 min | 1m 45s | **0m 40s** | **12x faster** |
-| **Full PR Matrix Turnaround**| **38 min** | **8 min** | **< 2 min** | **19x faster** |
+| **Full PR Matrix Turnaround**| **38 min** | **8 min** | **~2 – 4 min** | **10x – 19x faster** |
 
 #### Why `enve-cache` Changes the Equation
 1. **Without Remote Cache (Persistent Local Store Volume):**
@@ -144,7 +144,7 @@ Upstream Workflow Breakdown:
    - Cargo only builds RustDesk application code: **~5–8 minutes**.
 2. **With Remote Cache (`enve-cache` on Cloudflare R2):**
    - CI runner queries the binary cache via HTTP.
-   - If inputs have not changed, `enve` pulls the pre-built, cryptographically signed binary NAR: **< 90 seconds**.
+   - If inputs have not changed, `enve` pulls the pre-built, cryptographically signed binary NAR closures in seconds, completing full PR validation in **2–4 minutes**.
    - Build jobs become lightweight verification and packaging steps.
 
 ---
