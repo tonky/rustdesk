@@ -42,11 +42,6 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.R2_RUSTDESK_AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RUSTDESK_AWS_SECRET_ACCESS_KEY }}
   ENVE_CACHE_PUBLIC_KEY: "rustdesk-cache-1:eQ6XAwTOkaOgIi64koJQ4oQkBMcL5lKwgox+3aTnf2o="
-  SODIUM_SHARED: "1"
-  SODIUM_LIB_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
-  SODIUM_INCLUDE_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/include"
-  LD_LIBRARY_PATH: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
-  LIBCLANG_PATH: "/nix/store/yc2a9854a2y2c8kci88piblc847iq1l4-clang-21.1.8-lib/lib"
 
 jobs:
   synthesize-client:
@@ -135,6 +130,8 @@ jobs:
             libpam0g-dev \
             libsodium-dev \
             libssl-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
             nasm \
             pkg-config
 

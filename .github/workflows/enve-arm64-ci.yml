@@ -78,6 +78,8 @@ jobs:
             libpam0g-dev \
             libsodium-dev \
             libssl-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
             nasm \
             pkg-config
 

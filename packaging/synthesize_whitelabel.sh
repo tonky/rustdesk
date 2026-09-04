@@ -115,6 +115,10 @@ export RUSTDESK_APP_NAME="${APP_NAME}"
 export RENDEZVOUS_SERVER="${RENDEZVOUS_SERVER}"
 export RS_PUB_KEY="${PUBLIC_KEY}"
 
+if [[ "${ARCH}" != "x86_64" ]]; then
+    unset SODIUM_LIB_DIR SODIUM_INCLUDE_DIR LIBCLANG_PATH
+fi
+
 COMPILE_START=$(date +%s%N)
 if [[ "${ARCH}" == "x86_64" ]] && command -v enve >/dev/null 2>&1; then
     enve run -- cargo build "${CARGO_ARGS[@]}"
