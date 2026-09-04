@@ -27,6 +27,14 @@ on:
         description: "Cargo build profile (dev or release)"
         required: true
         default: "dev"
+  push:
+    branches:
+      - master
+      - "feat/**"
+    paths:
+      - "packaging/**"
+      - ".github/workflows/enve-whitelabel.yml"
+      - "patches/**"
 
 env:
   CLOUDFLARE_BUCKET: "https://847959617b8d3ada9eb84238a37f56ec.r2.cloudflarestorage.com/rustdesk-enve-cache"
@@ -110,12 +118,12 @@ jobs:
           chmod +x packaging/synthesize_whitelabel.sh
           START_S=$(date +%s)
           ./packaging/synthesize_whitelabel.sh \
-            --app-name "${{ inputs.app_name }}" \
-            --package-name "${{ inputs.package_name }}" \
-            --rendezvous-server "${{ inputs.rendezvous_server }}" \
-            --public-key "${{ inputs.public_key }}" \
-            --version "${{ inputs.version }}" \
-            --profile "${{ inputs.build_profile }}" \
+            --app-name "${{ inputs.app_name || 'Acme Remote Desktop' }}" \
+            --package-name "${{ inputs.package_name || 'acme-remote' }}" \
+            --rendezvous-server "${{ inputs.rendezvous_server || 'relay.acme.corp' }}" \
+            --public-key "${{ inputs.public_key || 'AcmeCorpKeyTest1234567890abcdefghijklmnopq=' }}" \
+            --version "${{ inputs.version || '1.5.0' }}" \
+            --profile "${{ inputs.build_profile || 'dev' }}" \
             --arch "${{ matrix.target.arch }}" \
             --output-dir "dist/whitelabel"
           END_S=$(date +%s)
@@ -125,7 +133,7 @@ jobs:
       - name: Upload Whitelabel Deliverables (Artifacts)
         uses: actions/upload-artifact@v4
         with:
-          name: whitelabel-${{ inputs.package_name }}-${{ matrix.target.arch }}-packages
+          name: whitelabel-${{ inputs.package_name || 'acme-remote' }}-${{ matrix.target.arch }}-packages
           path: dist/whitelabel/*
           retention-days: 14
 
@@ -153,11 +161,11 @@ jobs:
           | **Packaging Overhead** | 1,151 lines Docker-in-Docker \`build.py\` | Zero-dependency \`nfpm\` (<1s) | **Instant Native Packaging** |
 
           ### 📦 Synthesized Client Configuration
-          - **Branded Application Name**: \`${{ inputs.app_name }}\`
-          - **Binary & Package Name**: \`${{ inputs.package_name }}\`
-          - **Custom Rendezvous Server**: \`${{ inputs.rendezvous_server }}\`
-          - **Custom Public Key**: \`${{ inputs.public_key }}\`
-          - **Client Version**: \`${{ inputs.version }}\`
+          - **Branded Application Name**: \`${{ inputs.app_name || 'Acme Remote Desktop' }}\`
+          - **Binary & Package Name**: \`${{ inputs.package_name || 'acme-remote' }}\`
+          - **Custom Rendezvous Server**: \`${{ inputs.rendezvous_server || 'relay.acme.corp' }}\`
+          - **Custom Public Key**: \`${{ inputs.public_key || 'AcmeCorpKeyTest1234567890abcdefghijklmnopq=' }}\`
+          - **Client Version**: \`${{ inputs.version || '1.5.0' }}\`
 
           ### 🛡️ Generated Packages
           | Package Format | Filename | Size | SHA-256 Digest |
