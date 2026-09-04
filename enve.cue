@@ -69,6 +69,7 @@ dev: devshell.#DevEnvironment & {
 		SODIUM_LIB_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
 		SODIUM_INCLUDE_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/include"
 		LD_LIBRARY_PATH: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
+		LIBCLANG_PATH: "/nix/store/yc2a9854a2y2c8kci88piblc847iq1l4-clang-21.1.8-lib/lib"
 		CXXFLAGS: "-include cstdint"
 		RUSTFLAGS: ""
 		PUB_CACHE: "$HOME/.cache/pub"
@@ -103,7 +104,17 @@ dev: devshell.#DevEnvironment & {
 			echo "   Alternatively, build with: cargo build --features linux-pkg-config"
 		fi
 
-		# 4. Alias flutter_rust_bridge_codegen to automatically use the hermetic Nix LLVM
+		# 4. Ensure LIBCLANG_PATH is resolved from hermetic Nix store if not already set
+		if [ -z "$LIBCLANG_PATH" ]; then
+			for clang_lib in /nix/store/*-clang-*-lib/lib; do
+				if [ -f "$clang_lib/libclang.so" ]; then
+					export LIBCLANG_PATH="$clang_lib"
+					break
+				fi
+			done
+		fi
+
+		# 5. Alias flutter_rust_bridge_codegen to automatically use the hermetic Nix LLVM
 		if [ -n "$LIBCLANG_PATH" ]; then
 			alias flutter_rust_bridge_codegen="flutter_rust_bridge_codegen --llvm-path $(dirname $LIBCLANG_PATH)"
 		fi

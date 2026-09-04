@@ -37,9 +37,10 @@ impl Error for ParseError {
 }
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.to_string())
+        f.write_str(self.description())
     }
 }
+
 
 /// Evaluate the DSL. This tokenizes the input and presses the keys.
 pub fn eval<K>(enigo: &mut K, input: &str) -> Result<(), ParseError>

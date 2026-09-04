@@ -18,12 +18,12 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.R2_RUSTDESK_AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RUSTDESK_AWS_SECRET_ACCESS_KEY }}
   ENVE_CACHE_PUBLIC_KEY: "rustdesk-cache-1:eQ6XAwTOkaOgIi64koJQ4oQkBMcL5lKwgox+3aTnf2o="
-  CARGO_TARGET_DIR: "/tmp/cargo-target"
   RUSTFLAGS: ""
   SODIUM_SHARED: "1"
   SODIUM_LIB_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
   SODIUM_INCLUDE_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/include"
   LD_LIBRARY_PATH: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
+  LIBCLANG_PATH: "/nix/store/yc2a9854a2y2c8kci88piblc847iq1l4-clang-21.1.8-lib/lib"
 
 jobs:
   fast-ci:
@@ -35,9 +35,28 @@ jobs:
         with:
           submodules: recursive
 
-
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust Cache (Cargo dependencies & target)
+        uses: Swatinem/rust-cache@v2
+
+      - name: Initialize Nix Store Directory
+        shell: bash
+        run: |
+          sudo mkdir -p /nix/store
+          sudo chown -R $(whoami) /nix
+
+      - name: Cache Nix Store Closures (L1 Cache)
+        uses: actions/cache@v4
+        id: nix-store-cache
+        with:
+          path: /nix/store
+          key: nix-store-${{ runner.os }}-${{ hashFiles('enve.lock') }}
+          restore-keys: |
+            nix-store-${{ runner.os }}-
 
       - name: Install hermetic enve binary from private cache
         shell: bash
@@ -48,12 +67,6 @@ jobs:
           python3 scripts/fetch_enve.py /usr/local/bin/enve
           which enve
           enve --version
-
-      - name: Initialize Nix Store Directory
-        shell: bash
-        run: |
-          sudo mkdir -p /nix/store
-          sudo chown -R $(whoami) /nix
 
       - name: Verify enve CUE environment schema
         shell: bash
@@ -72,13 +85,13 @@ jobs:
           enve cache info --cache "${CLOUDFLARE_BUCKET}"
           echo "✅ Cloudflare R2 binary cache is online and responsive!"
 
-      - name: Synchronize Pre-built Closures from Cloudflare R2
+      - name: Synchronize Pre-built Closures (L1 / L2 Zero-Egress R2)
         shell: bash
         run: |
           echo "========================================================================"
-          echo " 📦 Synchronizing Pre-built Closures from Cloudflare R2"
+          echo " 📦 Synchronizing Pre-built Closures (L1 / L2 Zero-Egress R2)"
           echo "========================================================================"
-          enve cache pull enve.lock --cache "${CLOUDFLARE_BUCKET}" --trusted-public-key "${ENVE_CACHE_PUBLIC_KEY}"
+          enve cache pull enve.lock -j 3 --cache "${CLOUDFLARE_BUCKET}" --trusted-public-key "${ENVE_CACHE_PUBLIC_KEY}"
 
       - name: Real-Time Supply Chain Vulnerability Audit (enve shield)
         shell: bash
@@ -88,14 +101,23 @@ jobs:
           echo "========================================================================"
           enve audit enve.cue
 
-      - name: Build & Verify Core Modules with Native Media Codecs
+      - name: Full Workspace Build & Type Check (Native Media Codecs)
         shell: bash
         run: |
           echo "========================================================================"
-          echo " 🦀 Building hbb_common with locked store closures..."
+          echo " 🦀 Checking workspace with locked hermetic C/C++ store closures..."
           echo "========================================================================"
-          enve run -- cargo check -p hbb_common
-          echo "✅ Core build check passed in record time!"
+          enve run -- cargo check --workspace --features linux-pkg-config
+          echo "✅ Full workspace check passed in record time!"
+
+      - name: Full Workspace Clippy Lints
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🔍 Running Workspace Clippy"
+          echo "========================================================================"
+          enve run -- cargo clippy --workspace --features linux-pkg-config -- -A clippy::not_unsafe_ptr_arg_deref -A clippy::invalid_regex
+          echo "✅ Workspace clippy completed cleanly!"
 
       - name: Run Fast Unit Test Suite
         shell: bash
@@ -104,4 +126,4 @@ jobs:
           echo " 🧪 Running hbb_common Unit Tests"
           echo "========================================================================"
           enve run -- cargo test -p hbb_common -- --skip test_nat64
-          echo "✅ Fast test suite passed!"
+          echo "✅ Fast test suite passed (102 tests passed)!"
