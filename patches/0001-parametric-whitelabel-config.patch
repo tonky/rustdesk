@@ -1,0 +1,79 @@
+diff --git a/build.rs b/build.rs
+index 5ebc3a2..7bf37e8 100644
+--- a/build.rs
++++ b/build.rs
+@@ -11,4 +11,8 @@ fn main() {
+         .customize(protobuf_codegen::Customize::default().tokio_bytes(true))
+         .run()
+         .expect("Codegen failed.");
++
++    println!("cargo:rerun-if-env-changed=RENDEZVOUS_SERVER");
++    println!("cargo:rerun-if-env-changed=RS_PUB_KEY");
++    println!("cargo:rerun-if-env-changed=RUSTDESK_APP_NAME");
+ }
+diff --git a/src/config.rs b/src/config.rs
+index a3eba12..ad17568 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -69,7 +69,11 @@ lazy_static::lazy_static! {
+     static ref ONLINE: Mutex<HashMap<String, i64>> = Default::default();
+     pub static ref PROD_RENDEZVOUS_SERVER: RwLock<String> = RwLock::new("".to_owned());
+     pub static ref EXE_RENDEZVOUS_SERVER: RwLock<String> = Default::default();
+-    pub static ref APP_NAME: RwLock<String> = RwLock::new("RustDesk".to_owned());
++    pub static ref APP_NAME: RwLock<String> = RwLock::new(
++        option_env!("RUSTDESK_APP_NAME")
++            .unwrap_or("RustDesk")
++            .to_owned(),
++    );
+     static ref KEY_PAIR: Mutex<Option<KeyPair>> = Default::default();
+     static ref USER_DEFAULT_CONFIG: RwLock<(UserDefaultConfig, Instant)> = RwLock::new((UserDefaultConfig::load(), Instant::now()));
+     pub static ref NEW_STORED_PEER_CONFIG: Mutex<HashSet<String>> = Default::default();
+@@ -114,8 +118,14 @@ const CHARS: &[char] = &[
+     'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+ ];
+ 
+-pub const RENDEZVOUS_SERVERS: &[&str] = &["rs-ny.rustdesk.com"];
+-pub const RS_PUB_KEY: &str = "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=";
++pub const RENDEZVOUS_SERVERS: &[&str] = &[match option_env!("RENDEZVOUS_SERVER") {
++    Some(s) => s,
++    None => "rs-ny.rustdesk.com",
++}];
++pub const RS_PUB_KEY: &str = match option_env!("RS_PUB_KEY") {
++    Some(k) => k,
++    None => "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=",
++};
+ 
+ pub const RENDEZVOUS_PORT: i32 = 21116;
+ pub const RELAY_PORT: i32 = 21117;
+@@ -4024,4 +4034,31 @@ mod tests {
+         let non_service_user = Config::ipc_path_for_uid(USER_UID, "");
+         assert_ne!(non_service_root, non_service_user);
+     }
++
++    #[test]
++    fn test_parametric_whitelabel_config() {
++        let app_name = APP_NAME.read().unwrap().clone();
++        assert!(!app_name.is_empty(), "APP_NAME must never be empty");
++
++        assert!(
++            !RENDEZVOUS_SERVERS.is_empty(),
++            "RENDEZVOUS_SERVERS must have at least one server"
++        );
++        assert!(
++            !RENDEZVOUS_SERVERS[0].is_empty(),
++            "Primary rendezvous server must not be empty"
++        );
++
++        assert!(!RS_PUB_KEY.is_empty(), "RS_PUB_KEY must not be empty");
++
++        if let Some(expected_server) = option_env!("RENDEZVOUS_SERVER") {
++            assert_eq!(RENDEZVOUS_SERVERS[0], expected_server);
++        }
++        if let Some(expected_key) = option_env!("RS_PUB_KEY") {
++            assert_eq!(RS_PUB_KEY, expected_key);
++        }
++        if let Some(expected_name) = option_env!("RUSTDESK_APP_NAME") {
++            assert_eq!(app_name, expected_name);
++        }
++    }
+ }

@@ -35,6 +35,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply Parametric Whitelabel Patch to hbb_common
+        shell: bash
+        run: |
+          if [ -f patches/0001-parametric-whitelabel-config.patch ]; then
+            echo "Applying parametric whitelabel patch to libs/hbb_common..."
+            git -C libs/hbb_common apply ../../patches/0001-parametric-whitelabel-config.patch 2>/dev/null \
+              || patch -p1 -d libs/hbb_common < patches/0001-parametric-whitelabel-config.patch
+          fi
+
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
