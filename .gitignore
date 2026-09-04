@@ -4,6 +4,10 @@
 .idea
 .DS_Store
 .env
+.env*
+.envrc*
+*.key
+*.secret
 libsciter-gtk.so
 src/ui/inline.rs
 extractor

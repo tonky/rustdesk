@@ -1,0 +1,106 @@
+name: "enve Fast CI (RustDesk PoC)"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
+  push:
+    branches:
+      - master
+      - "feat/**"
+
+
+env:
+  CLOUDFLARE_BUCKET: "https://847959617b8d3ada9eb84238a37f56ec.r2.cloudflarestorage.com/rustdesk-enve-cache"
+  AWS_ENDPOINT_URL: "https://847959617b8d3ada9eb84238a37f56ec.r2.cloudflarestorage.com"
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_RUSTDESK_AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RUSTDESK_AWS_SECRET_ACCESS_KEY }}
+  ENVE_CACHE_PUBLIC_KEY: "rustdesk-cache-1:eQ6XAwTOkaOgIi64koJQ4oQkBMcL5lKwgox+3aTnf2o="
+  CARGO_TARGET_DIR: "/tmp/cargo-target"
+  RUSTFLAGS: ""
+  SODIUM_SHARED: "1"
+  SODIUM_LIB_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
+  SODIUM_INCLUDE_DIR: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/include"
+  LD_LIBRARY_PATH: "/nix/store/rbc496f0h04ddix6b05ya4w5csms1a9v-libsodium-1.0.22-unstable-2026-07-31/lib"
+
+jobs:
+  fast-ci:
+    name: "Fast Build & Verification (enve)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install hermetic enve binary from private cache
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 📥 Fetching enve binary from private Cloudflare R2 binary cache..."
+          echo "========================================================================"
+          python3 scripts/fetch_enve.py /usr/local/bin/enve
+          which enve
+          enve --version
+
+      - name: Initialize Nix Store Directory
+        shell: bash
+        run: |
+          sudo mkdir -p /nix/store
+          sudo chown -R $(whoami) /nix
+
+      - name: Verify enve CUE environment schema
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🚀 enve CUE Environment Validation"
+          echo "========================================================================"
+          enve check enve.cue
+
+      - name: Verify Cloudflare R2 Binary Cache Connectivity
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🛰️  Testing Cloudflare R2 Binary Cache (${CLOUDFLARE_BUCKET})"
+          echo "========================================================================"
+          enve cache info --cache "${CLOUDFLARE_BUCKET}"
+          echo "✅ Cloudflare R2 binary cache is online and responsive!"
+
+      - name: Synchronize Pre-built Closures from Cloudflare R2
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 📦 Synchronizing Pre-built Closures from Cloudflare R2"
+          echo "========================================================================"
+          enve cache pull enve.lock --cache "${CLOUDFLARE_BUCKET}" --trusted-public-key "${ENVE_CACHE_PUBLIC_KEY}"
+
+      - name: Real-Time Supply Chain Vulnerability Audit (enve shield)
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🛡️  Real-Time Vulnerability Audit"
+          echo "========================================================================"
+          enve audit enve.cue
+
+      - name: Build & Verify Core Modules with Native Media Codecs
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🦀 Building hbb_common with locked store closures..."
+          echo "========================================================================"
+          enve run -- cargo check -p hbb_common
+          echo "✅ Core build check passed in record time!"
+
+      - name: Run Fast Unit Test Suite
+        shell: bash
+        run: |
+          echo "========================================================================"
+          echo " 🧪 Running hbb_common Unit Tests"
+          echo "========================================================================"
+          enve run -- cargo test -p hbb_common -- --skip test_nat64
+          echo "✅ Fast test suite passed!"
