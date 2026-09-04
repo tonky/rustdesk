@@ -59,6 +59,8 @@ jobs:
           sudo mkdir -p /var/cache/apt/archives/partial
           sudo apt-get update -y
           sudo apt-get install -y libsodium-dev libssl-dev pkg-config libclang-dev
+          sudo rm -f /var/cache/apt/archives/lock
+          sudo chmod -R a+rwx /var/cache/apt/archives
 
       - name: Run ARM64 Unit Tests
         shell: bash
@@ -164,6 +166,8 @@ jobs:
           EOF
           sudo sed -i 's/^[ \t]*//' /usr/share/pkgconfig/libyuv.pc
           pkg-config --libs --cflags libyuv
+          sudo rm -f /var/cache/apt/archives/lock
+          sudo chmod -R a+rwx /var/cache/apt/archives
 
       - name: Install ARM64 nFPM Packaging Engine
         shell: bash
