@@ -120,11 +120,24 @@ dev: devshell.#DevEnvironment & {
 		fi
 
 
-		# 5. Export C++ runtime libstdc++.so.6 for dynamic test runners
+		# 5. Export C++ runtime and desktop GUI libraries for dynamic test runners
 		for gcc_lib in /nix/store/*-gcc-*-lib/lib; do
 			if [ -f "$gcc_lib/libstdc++.so.6" ]; then
 				export LD_LIBRARY_PATH="$gcc_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 				break
+			fi
+		done
+
+		for env_lib in /nix/store/*-environment-develop/lib; do
+			if [ -d "$env_lib" ]; then
+				export LD_LIBRARY_PATH="$env_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+				break
+			fi
+		done
+
+		for x_lib in /nix/store/*-libxtst-*/lib /nix/store/*-libxkbcommon-*/lib; do
+			if [ -d "$x_lib" ]; then
+				export LD_LIBRARY_PATH="$x_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 			fi
 		done
 
@@ -141,6 +154,6 @@ dev: devshell.#DevEnvironment & {
 		echo "   - Flutter GUI:     cd flutter && flutter build linux --debug"
 		echo "   - Service Daemon:  cargo check --bin service --features linux-pkg-config"
 		echo "   - Core Tests:      cargo test -p hbb_common"
-		echo "   - Workspace Tests: cargo test --workspace --features linux-pkg-config --no-fail-fast -- --skip test_get_cursor_pos --skip test_get_key_state"
+		echo "   - Full Workspace:  xvfb-run -a cargo test --workspace --features linux-pkg-config --no-fail-fast"
 		"""
 }
