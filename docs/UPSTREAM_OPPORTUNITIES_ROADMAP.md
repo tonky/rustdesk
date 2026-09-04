@@ -169,6 +169,40 @@ Replace the brittle Docker-in-Docker `run-on-arch-action` architecture with nati
 
 ---
 
+## 8. Solving the Enterprise Backward-Compatibility Dilemma: Modern Runners vs. Legacy `glibc`
+
+### Upstream Context: The `glibc` Symbol Versioning Trap
+A review of RustDesk's runner usage metrics reveals builds across macOS 14/15, Windows 11 on ARM, and an array of Ubuntu versions, with a stubborn reliance on Ubuntu 18.04:
+- In Linux, binaries compiled against newer `glibc` (e.g., `glibc 2.39` on Ubuntu 24.04) fail to execute on older distributions with `version 'GLIBC_2.xx' not found`.
+- Because RustDesk Server Pro and desktop clients serve paying enterprise customers running legacy workstations (RHEL 7/8, Debian 10/11, Ubuntu 18.04/20.04 LTS, factory terminals), upstream maintains Ubuntu 18.04 (`glibc 2.27`) in their packaging scripts despite archived Canonical mirrors and frequent CI outages.
+
+### The Modern Architectural Opportunities
+Focusing our Phase 1 & Phase 2 efforts on modern Ubuntu (`ubuntu-latest`) while solving their enterprise backward-compatibility problem unlocks several high-leverage architectural opportunities:
+
+1. **Decouple PR Gatekeeping from Release Packaging (The Two-Track CI)**:
+   - Upstream’s primary structural mistake is treating every PR like a full multi-platform release build.
+   - **Track 1: Fast PR Gatekeeper (`ubuntu-latest` + `enve`)**: PRs only require syntax validation, workspace type-checking, clippy lints, unit tests, and vulnerability scanning (`enve shield`). Running this on standard `ubuntu-latest` with `enve`'s two-tier L1/L2 cache takes **under 60 seconds** instead of 1–3.5 hours. Developers get instant feedback on every commit without waiting for 10 distribution targets.
+   - **Track 2: Release Packaging Pipeline (Tags / Nightlies only)**: Heavy multi-arch matrix packaging triggers only on release tags or manual workflow dispatch.
+
+2. **Build for Legacy `glibc` on Modern Runners (Hermetic Sysroots)**:
+   - Producing `glibc 2.27`-compatible binaries does **not** require running an obsolete 2018 operating system.
+   - By running on fast GitHub Actions `ubuntu-latest` (Ubuntu 24.04) runners with modern NVMe storage and kernel features, `enve` provides closures linking against pinned older sysroots or using `cargo-zigbuild` / `patchelf`.
+   - Eliminates Canonical mirror flakiness: all toolchains, headers, and sysroots are content-addressed and cached in Cloudflare R2.
+
+3. **Hermetic `x86_64-unknown-linux-musl` for True Universal Compatibility**:
+   - RustDesk's experimental `musl` build frequently breaks because upstream media dependencies (`libvpx`, `ffmpeg`, `gtk3`, `pulseaudio`) are difficult to compile against `musl` manually.
+   - `enve` provides a fully reproducible static `musl` environment. A statically linked binary runs seamlessly on any Linux distribution (from Alpine to CentOS 7 to modern Arch/Ubuntu) without `glibc` version dependencies.
+
+4. **Modern Packaging Formats (AppImage & Flatpak)**:
+   - For end users and enterprise IT administrators on modern distributions, maintaining separate `.deb` packages compiled against ancient libraries is becoming obsolete.
+   - An `enve`-powered build on modern Ubuntu packages portable AppImages and Flatpaks in under 2 minutes, with all shared libraries bundled internally.
+
+5. **Pitching Strategy for the RustDesk Team**:
+   - **Show the Contrast**: Emphasize how `enve` delivers a **45–60s PR gatekeeper on modern `ubuntu-latest`**, immediately eliminating stalled PR queues.
+   - **Path Forward for Packaging**: Propose replacing the brittle Ubuntu 18.04 Docker containers in `flutter-ci.yml` with hermetic `enve` environments, saving thousands of CI runner minutes monthly while preserving 100% backward compatibility for paying Server Pro customers.
+
+---
+
 ## Pitching Strategy & Roadmap Summary
 
 | Initiative | Technical Value | Business Impact |
