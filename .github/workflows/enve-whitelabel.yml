@@ -50,13 +50,14 @@ env:
 
 jobs:
   synthesize-client:
-    name: "Synthesize ${{ inputs.package_name }} (${{ matrix.target.arch }})"
-    runs-on: ubuntu-latest
+    name: "Synthesize ${{ inputs.package_name || 'acme-remote' }} (${{ matrix.target.arch }})"
+    runs-on: ${{ matrix.target.runner }}
     strategy:
       fail-fast: false
       matrix:
         target:
-          - { arch: "x86_64", nfpm_arch: "amd64" }
+          - { arch: "x86_64", runner: "ubuntu-latest", nfpm_arch: "amd64", nfpm_dl_arch: "x86_64" }
+          - { arch: "aarch64", runner: "ubuntu-24.04-arm", nfpm_arch: "arm64", nfpm_dl_arch: "arm64" }
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -78,17 +79,19 @@ jobs:
       - name: Rust Cache (Cargo dependencies & target)
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "rustdesk-shared-target"
+          shared-key: "rustdesk-shared-target-${{ matrix.target.arch }}"
           cache-all-crates: "true"
           save-if: "true"
 
-      - name: Initialize Nix Store Directory
+      - name: Initialize Nix Store Directory (x86_64 enve)
+        if: matrix.target.arch == 'x86_64'
         shell: bash
         run: |
           sudo mkdir -p /nix/store
           sudo chown -R $(whoami) /nix
 
       - name: Cache Nix Store Closures (L1 Cache)
+        if: matrix.target.arch == 'x86_64'
         uses: actions/cache@v4
         id: nix-store-cache
         with:
@@ -97,23 +100,50 @@ jobs:
           restore-keys: |
             nix-store-${{ runner.os }}-
 
-      - name: Install hermetic enve binary from private cache
+      - name: Install hermetic enve binary from private cache (x86_64)
+        if: matrix.target.arch == 'x86_64'
         shell: bash
         run: |
           python3 scripts/fetch_enve.py /usr/local/bin/enve
           enve --version
 
-      - name: Install nFPM Packaging Engine
-        shell: bash
-        run: |
-          curl -sfLo /tmp/nfpm.tar.gz https://github.com/goreleaser/nfpm/releases/download/v2.41.3/nfpm_2.41.3_Linux_x86_64.tar.gz
-          sudo tar -C /usr/local/bin -xzf /tmp/nfpm.tar.gz nfpm
-          nfpm --version
-
       - name: Synchronize Pre-built Closures (L1 / L2 Zero-Egress R2)
+        if: matrix.target.arch == 'x86_64'
         shell: bash
         run: |
           enve cache pull enve.lock -j 3 --cache "${CLOUDFLARE_BUCKET}" --trusted-public-key "${ENVE_CACHE_PUBLIC_KEY}"
+
+      - name: Install Native ARM64 Build Dependencies
+        if: matrix.target.arch == 'aarch64'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libasound2-dev \
+            libclang-dev \
+            libgtk-3-dev \
+            libpulse-dev \
+            libxcb-randr0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxdo-dev \
+            libxfixes-dev \
+            libvpx-dev \
+            libyuv-dev \
+            libopus-dev \
+            libaom-dev \
+            libpam0g-dev \
+            libsodium-dev \
+            libssl-dev \
+            nasm \
+            pkg-config
+
+      - name: Install nFPM Packaging Engine
+        shell: bash
+        run: |
+          curl -sfLo /tmp/nfpm.tar.gz "https://github.com/goreleaser/nfpm/releases/download/v2.41.3/nfpm_2.41.3_Linux_${{ matrix.target.nfpm_dl_arch }}.tar.gz"
+          sudo tar -C /usr/local/bin -xzf /tmp/nfpm.tar.gz nfpm
+          nfpm --version
 
       - name: Synthesize Parametric Whitelabel Packages
         id: synthesis
@@ -165,6 +195,7 @@ jobs:
           | **Packaging Overhead** | 1,151 lines Docker-in-Docker \`build.py\` | Zero-dependency \`nfpm\` (<1s) | **Instant Native Packaging** |
 
           ### 📦 Synthesized Client Configuration
+          - **Architecture**: \`${{ matrix.target.arch }}\` (Runner: \`${{ matrix.target.runner }}\`)
           - **Branded Application Name**: \`${{ inputs.app_name || 'Acme Remote Desktop' }}\`
           - **Binary & Package Name**: \`${{ inputs.package_name || 'acme-remote' }}\`
           - **Custom Rendezvous Server**: \`${{ inputs.rendezvous_server || 'relay.acme.corp' }}\`

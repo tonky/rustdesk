@@ -15,7 +15,7 @@ RENDEZVOUS_SERVER="rs-ny.rustdesk.com"
 PUBLIC_KEY="OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw="
 VERSION="1.5.0"
 OUTPUT_DIR="dist/whitelabel"
-ARCH="x86_64"
+ARCH="$(uname -m)"
 BUILD_PROFILE="dev"
 
 usage() {
@@ -29,7 +29,7 @@ Options:
   --public-key <key>          Enterprise Ed25519 Public Key
   --version <ver>             Package version (default: 1.5.0)
   --output-dir <dir>          Deliverable output directory (default: dist/whitelabel)
-  --arch <arch>               Architecture (x86_64 or aarch64, default: x86_64)
+  --arch <arch>               Architecture (x86_64 or aarch64, default: $(uname -m))
   --profile <dev|release>     Cargo build profile (default: dev)
   -h, --help                  Show this help message
 EOF
@@ -116,7 +116,11 @@ export RENDEZVOUS_SERVER="${RENDEZVOUS_SERVER}"
 export RS_PUB_KEY="${PUBLIC_KEY}"
 
 COMPILE_START=$(date +%s%N)
-enve run -- cargo build "${CARGO_ARGS[@]}"
+if [[ "${ARCH}" == "x86_64" ]] && command -v enve >/dev/null 2>&1; then
+    enve run -- cargo build "${CARGO_ARGS[@]}"
+else
+    cargo build "${CARGO_ARGS[@]}"
+fi
 COMPILE_END=$(date +%s%N)
 COMPILE_MS=$(( (COMPILE_END - COMPILE_START) / 1000000 ))
 # Locate compiled binary
@@ -211,8 +215,10 @@ EOF
 echo ""
 echo "📦 Phase 3: Synthesizing Native Packages with nFPM..."
 NFPM_ARCH="${ARCH}"
-if [[ "${ARCH}" == "x86_64" ]]; then
+if [[ "${ARCH}" == "x86_64" || "${ARCH}" == "amd64" ]]; then
     NFPM_ARCH="amd64"
+elif [[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]]; then
+    NFPM_ARCH="arm64"
 fi
 
 NFPM_CONFIG="${STAGE_DIR}/nfpm.yaml"
@@ -284,6 +290,10 @@ echo "   Finished nFPM packaging in $(( PKG_MS / 1000 )).$(( (PKG_MS % 1000) / 1
 echo ""
 echo "🔍 Phase 4: Self-Verification & Binary String Audit..."
 STAGE_BIN="${STAGE_DIR}/usr/bin/${PACKAGE_NAME}"
+echo "   Target Arch:      ${ARCH} (Host: $(uname -m))"
+if command -v file >/dev/null 2>&1; then
+    echo "   Binary Info:      $(file -b "${STAGE_BIN}")"
+fi
 if grep -aq "${RENDEZVOUS_SERVER}" "${STAGE_BIN}"; then
     echo "   ✅ Verified: Custom Rendezvous Server '${RENDEZVOUS_SERVER}' is baked directly into the binary!"
 else
