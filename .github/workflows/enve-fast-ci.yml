@@ -146,9 +146,14 @@ jobs:
           echo "========================================================================"
           enve run -- cargo build --bin rustdesk --features linux-pkg-config
           mkdir -p target/
-          target_bin=$(find target /home/runner/.cargo/target /tmp/cargo-target -name "rustdesk" -type f -perm /111 2>/dev/null | head -n 1)
-          if [ -z "$target_bin" ]; then
-            target_bin="target/debug/rustdesk"
+          target_bin=$(find target /home/runner/.cargo/target /tmp/cargo-target -type f -name "rustdesk" -perm /111 -print -quit 2>/dev/null || true)
+          if [ -z "$target_bin" ] || [ ! -f "$target_bin" ]; then
+            for candidate in target/debug/rustdesk target/rustdesk /home/runner/.cargo/target/debug/rustdesk; do
+              if [ -f "$candidate" ]; then
+                target_bin="$candidate"
+                break
+              fi
+            done
           fi
           echo "Found binary at: $target_bin"
           cp "$target_bin" target/rustdesk
@@ -207,8 +212,8 @@ jobs:
 
           | Package | Target | Size | SHA-256 Checksum |
           | :--- | :--- | :--- | :--- |
-          | \`rustdesk-1.5.0-x86_64.deb\` | Debian / Ubuntu 20.04+ | \${DEB_SIZE} | \`\${DEB_SHA}\` |
-          | \`rustdesk-1.5.0-x86_64.rpm\` | Fedora / RHEL / openSUSE | \${RPM_SIZE} | \`\${RPM_SHA}\` |
+          | \`rustdesk-1.5.0-x86_64.deb\` | Debian / Ubuntu 20.04+ | ${DEB_SIZE} | \`${DEB_SHA}\` |
+          | \`rustdesk-1.5.0-x86_64.rpm\` | Fedora / RHEL / openSUSE | ${RPM_SIZE} | \`${RPM_SHA}\` |
 
           > 💡 **Reviewer Tip**: Download the \`rustdesk-linux-x86_64-packages\` artifact from the summary header above to test changes directly on your machine without building from source!
           EOF
